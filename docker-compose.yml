@@ -10,5 +10,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  backend:
+    build: ./services/backend
+    environment:
+      DATABASE_URL: postgres://orbit:orbit@postgres:5432/orbit
+    ports:
+      - "8000:8000"
+
 volumes:
   pgdata:
+
+
