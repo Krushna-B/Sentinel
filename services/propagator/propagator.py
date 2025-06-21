@@ -21,7 +21,6 @@ def wait_for_kafka(timeout=60, interval=5):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
-            # Try a quick metadata lookup via a producer
             p = KafkaProducer(bootstrap_servers=[KAFKA_BROKER])
             if p.bootstrap_connected():
                 p.close()
@@ -87,7 +86,7 @@ def main():
                 state_vector = propogate_tle(norad_id,l1,l2,target)
                 producer.send(PROP_TOPIC, state_vector)
                 producer.flush()
-                print(f"Propagated NORAD {norad_id} at {state_vector['timestamp']} ")
+                print(f"Propagated NORAD {norad_id} at {state_vector['timestamp']} with Position {state_vector['position_vector']} ")
             except Exception as e:
                 print(f"Error in propogating NORAD {norad_id}: {e}")
 
