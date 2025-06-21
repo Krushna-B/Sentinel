@@ -3,18 +3,25 @@ import os
 import json
 import requests 
 from kafka import KafkaProducer
-
+from kafka.errors import NoBrokersAvailable
 
 SPACE_TRACK_USERNAME = os.getenv("SPACE_TRACK_USERNAME")
 SPACE_TRACK_PASSWORD = os.getenv("SPACE_TRACK_PASSWORD")
 if not SPACE_TRACK_USERNAME or not SPACE_TRACK_PASSWORD:
     raise RuntimeError ("SPACE_TRACK_USERNAME and SPACE_TRACK_PASSWORD must be set as environment variables.")
 
-KAFKA_BROKER = "localhost:29092"
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:9092")
 TOPIC = "TLE.raw"
 
 SPACE_TRACK_LOGIN_URL = "https://www.space-track.org/ajaxauth/login"
-SPACE_TRACK_URL = "https://www.space-track.org/basicspacedata/query/class/gp/decay_date/null-val/epoch/>now-30/orderby/norad_cat_id/limit/10/format/json"
+SPACE_TRACK_URL = (
+    "https://www.space-track.org/basicspacedata/query/"
+    "class/gp/"
+    "decay_date/null-val/"
+    "epoch/%3Enow-30/"
+    "orderby/norad_cat_id/"
+    "format/json"
+)
 
 FETCH_INTERVAL = 30 * 60   #30 minute wait on data fetch
 
@@ -56,15 +63,20 @@ def post_to_kafka(producer, tle_list):
     producer.flush()
     return count
 
+def create_producer():
+    for i in range(10):  # try for ~10 seconds
+        try:
+            return KafkaProducer(bootstrap_servers=[KAFKA_BROKER],
+                                 linger_ms = 10,
+                                retries = 5,
+                                request_timeout_ms = 20000
+                                )
+        except NoBrokersAvailable:
+            time.sleep(1)
+    raise RuntimeError("Kafka broker not available after multiple retries")
 
 def main():
-    prodcuer = KafkaProducer(bootstrap_servers = [KAFKA_BROKER],
-                             linger_ms = 10,
-                             retries = 5,
-                             request_timeout_ms = 20000
-                             )
-
-
+    producer = create_producer()
     try:
         session = create_spacetrack_session()
         print(f"Logged into Space-Track sucessfully")
@@ -75,7 +87,7 @@ def main():
         try:
             tle_list = fetch_TLE(session)
             print(f"🔍 Fetched {len(tle_list)} raw TLE entries")
-            num_published = post_to_kafka(prodcuer,tle_list)
+            num_published = post_to_kafka(producer,tle_list)
             print(f"Published {num_published} TLEs to Kafka topic {TOPIC}")
         except Exception as e:
             print("Error fetching/publishing TLEs:", e)
