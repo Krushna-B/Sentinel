@@ -14,7 +14,7 @@ import sys
 
 KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:9092")
 RAW_TOPIC = "TLE.raw"
-PROP_TOPIC = "TLE.prop"
+PROP_TOPIC = "state_vectors"
 
 def wait_for_kafka(timeout=60, interval=5):
     """Block until Kafka is accepting connections, or raise after timeout (sec)."""
@@ -84,7 +84,17 @@ def main():
 
             try:
                 state_vector = propogate_tle(norad_id,l1,l2,target)
-                producer.send(PROP_TOPIC, state_vector)
+                flat = {
+                    "norad_id": state_vector["norad_id"],
+                    "timestamp": state_vector["timestamp"],
+                    "x": state_vector["position_vector"][0],
+                    "y": state_vector["position_vector"][1],
+                    "z": state_vector["position_vector"][2],
+                    "vx": state_vector["velocity_vector"][0],
+                    "vy": state_vector["velocity_vector"][1],
+                    "vz": state_vector["velocity_vector"][2],
+                }
+                producer.send(PROP_TOPIC, flat)
                 producer.flush()
                 print(f"Propagated NORAD {norad_id} at {state_vector['timestamp']} with Position {state_vector['position_vector']} ")
             except Exception as e:
