@@ -41,7 +41,7 @@ def consume():
         
                   
         sv = StateVector(
-            norad_id = data['norad_id']
+            norad_id = data['norad_id'],
             timestamp = datetime.fromisoformat(data["timestamp"]),
             x = data['x'],
             y = data['y'],
