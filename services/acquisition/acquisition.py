@@ -18,12 +18,12 @@ SPACE_TRACK_URL = (
     "https://www.space-track.org/basicspacedata/query/"
     "class/gp/"
     "decay_date/null-val/"
-    "epoch/%3Enow-30/"
+    "epoch/%3Enow-100/"
     "orderby/norad_cat_id/"
     "format/json"
 )
 
-FETCH_INTERVAL = 30 * 60   #30 minute wait on data fetch
+FETCH_INTERVAL = 10 * 60   #30 minute wait on data fetch
 
 def create_spacetrack_session():
     session = requests.Session()

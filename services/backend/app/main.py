@@ -1,11 +1,8 @@
 from fastapi import FastAPI
-from .database import engine, Base
+from .database import Base, engine
 from contextlib import asynccontextmanager
 from .routes import state_vectors
 from .consumers.kafka_consumer import start_consumer
-
-
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

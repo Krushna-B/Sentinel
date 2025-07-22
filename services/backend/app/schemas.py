@@ -6,6 +6,7 @@ from datetime import datetime
 
 class StateVector(BaseModel):
     timestamp: datetime
+    norad_id: int
     x: float
     y: float
     z: float

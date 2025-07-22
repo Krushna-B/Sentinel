@@ -10,7 +10,7 @@ def create_state_vector(
     sv: schemas.StateVector, 
     db: Session = Depends(database.get_db)
 ):
-    db_sv = models.StateVector(**sv.dict())
+    db_sv = models.StateVector(**sv.model_dump())
     db.add(db_sv)
     db.commit()
     db.refresh(db_sv)

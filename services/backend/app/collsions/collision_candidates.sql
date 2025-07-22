@@ -24,7 +24,7 @@ binned AS (
     SELECT
       sat_id, x, y, z, vx, vy, vz,
      
-      floor( (rho - 6378.137 - 160.0) / 25.0        
+      floor( (rho - 6378.137 - 160.0) / 25.0     
       )::int AS hbin,  -- altitude shell  : 25 km tall, start counting 160 km above Earth
      
       floor( (phi * 180/PI()) / 5.0 )              ::int AS ibin,    --inclination bin : 5° increments  (colat = 90° – inclination)
@@ -41,11 +41,14 @@ binned AS (
 SELECT
     a.sat_id AS ida,
     b.sat_id AS idb,
-    a.x,  a.y,  a.z,  a.vx,  a.vy,  a.vz,     -- state-vector A
-    b.x,  b.y,  b.z,  b.vx,  b.vy,  b.vz      -- state-vector B
+    a.x  AS x_a,  a.y  AS y_a,  a.z  AS z_a,
+    a.vx AS vx_a, a.vy AS vy_a, a.vz AS vz_a,
+
+    b.x  AS x_b,  b.y  AS y_b,  b.z  AS z_b,
+    b.vx AS vx_b, b.vy AS vy_b, b.vz AS vz_b    
 FROM   binned a
 JOIN   binned b
-  ON   abs(a.hbin - b.hbin) <= 1      -- same altitude shell or neighbour
+    ON   abs(a.hbin - b.hbin) <= 1      -- same altitude shell or neighbour
  AND  abs(a.ibin  - b.ibin)  <= 1      -- same incl. bucket  (±1 = 5° margin)
  AND  abs(a.rbin  - b.rbin)  <= 1      -- same RAAN bucket   (±1 = 5° margin)
  AND  a.sat_id < b.sat_id;             -- prevents (A,B) vs (B,A) duplicates

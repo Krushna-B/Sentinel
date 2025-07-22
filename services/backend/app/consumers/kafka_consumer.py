@@ -1,6 +1,7 @@
 from kafka import KafkaConsumer, errors
 import json
 import threading
+from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 from ..models import StateVector
 from ..database import SessionLocal
@@ -36,7 +37,7 @@ def consume():
 
     for msg in consumer:
         data = msg.value
-        print("💬 got msg:", data)
+        # print("💬 got msg:", data)
         
         
                   
@@ -54,9 +55,11 @@ def consume():
             db.add(sv)
             db.commit()
             print(f"✔︎ inserted state-vector id={sv.id}")
-        except Exception as e:
+        except SQLAlchemyError as e:
+            db.rollback()
             print(f"{e}")
-               
+        finally:
+             db.close()
 
    
 def start_consumer():
