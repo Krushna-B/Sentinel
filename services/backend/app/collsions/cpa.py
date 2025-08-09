@@ -83,11 +83,11 @@ async def process_batch(batch):
     t_star, d_min = cpa_analytic(rA, rB, vA, vB, HORIZON_S)
     now = datetime.now(timezone.utc)
 
-    print(f"\n>>> Processed batch of {len(batch)} candidates; sample CPA:")
+    # print(f"\n>>> Processed batch of {len(batch)} candidates; sample CPA:")
     for a, b, t_rel, d in zip(ida[:5], idb[:5], t_star[:5], d_min[:5]):
         when = now + timedelta(seconds=float(t_rel))
-        print(
-            f"  Pair {a:>6}/{b:<6} | miss = {d:6.3f} km"
-            + f" | CPA in {t_rel/3600:5.2f} h"
-            + f" ({when.isoformat(timespec='seconds')}Z)"
-        )
+        # print(
+        #     f"  Pair {a:>6}/{b:<6} | miss = {d:6.3f} km"
+        #     + f" | CPA in {t_rel/3600:5.2f} h"
+        #     + f" ({when.isoformat(timespec='seconds')}Z)"
+        # )

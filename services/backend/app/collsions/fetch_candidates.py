@@ -11,8 +11,8 @@ async def get_candidates(pool):
     sql = open("services/backend/app/collsions/collision_candidates.sql").read()
     rows = await pool.fetch(sql,t_min,t_max)
 
-    print("T_min:", t_min, "T_max:", t_max)
-    print("Fetched", len(rows), "candidate rows")
+    # print("T_min:", t_min, "T_max:", t_max)
+    # print("Fetched", len(rows), "candidate rows")
     
     await pool.execute("""
         INSERT INTO checkpoint(last_t) VALUES ($1)

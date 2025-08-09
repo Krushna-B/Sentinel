@@ -54,10 +54,10 @@ def consume():
         try:
             db.add(sv)
             db.commit()
-            print(f"✔︎ inserted state-vector id={sv.id}")
+            # print(f"✔︎ inserted state-vector id={sv.id}")
         except SQLAlchemyError as e:
             db.rollback()
-            print(f"{e}")
+            # print(f"{e}")
         finally:
              db.close()
 
