@@ -3,16 +3,20 @@ import { getSatellites } from "@/lib/getSatellites";
 import GlobePane from "@/components/GlobePane";
 
 
-const displayNumber = 9999
+const displayNumber = 1000
 
 export default async function Home(){
 
   const sats = await getSatellites(displayNumber);
 
   return (
-  <GlobePane sats={sats}>
+    <div className="w-screen">
 
-  </GlobePane>
+      <GlobePane sats={sats}/>
+    </div>
+
+
+
   )
 
 }
