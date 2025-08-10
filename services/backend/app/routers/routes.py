@@ -1,51 +1,192 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+
+from __future__ import annotations
+
+from datetime import datetime, timezone, timedelta
+from math import cos, sin, sqrt, asin, atan2, degrees, pi
+from typing import List, Tuple, Sequence
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from .. import database, models, schemas
-from ..utils.orbit import state_to_elements, elements_to_r, eci_to_lla, MU
-import math, numpy as np
 
-router = APIRouter()
+from ..database import get_db
 
-@router.get("/satillites", response_model=list[schemas.SatOrbit])
-def orbits_from_state(
-    limit: int = Query(100, gt=1, le=10000),
-    step: int = Query(60, ge=10, le=600),
-    db: Session = Depends(database.get_db),
+# ---- Alias ORM models (avoid name clashes) ----
+from ..models import Objects as ObjectsModel
+from ..models import StateVector as StateVectorModel
+from ..models import TleSet as TleSetModel
+
+# ---- Import schemas for response_model typing ----
+from ..schemas import StateVector as StateVectorSchema
+from ..schemas import TLEOut as TLEOutSchema
+from ..schemas import SatOrbit as SatOrbitSchema
+
+from sgp4.api import Satrec, jday
+
+router = APIRouter(prefix="/api")
+R_EARTH_KM = 6371.0
+
+
+# ---------- helpers ----------
+
+def _gmst_rad(ts: datetime) -> float:
+    jd, fr = jday(ts.year, ts.month, ts.day,
+                  ts.hour, ts.minute, ts.second + ts.microsecond * 1e-6)
+    T = ((jd + fr) - 2451545.0) / 36525.0
+    gmst_sec = 67310.54841 + (876600.0 * 3600 + 8640184.812866) * T + 0.093104 * (T**2) - 6.2e-6 * (T**3)
+    gmst_sec %= 86400.0
+    if gmst_sec < 0:
+        gmst_sec += 86400.0
+    return (gmst_sec * 2.0 * pi) / 86400.0
+
+def eci_to_geodetic_spherical(x: float, y: float, z: float, ts: datetime) -> Tuple[float, float, float]:
+    """Fast ECI→(lat, lon, alt_km) for visualization."""
+    theta = _gmst_rad(ts)
+    ct, st = cos(theta), sin(theta)
+    x_e = ct * x + st * y
+    y_e = -st * x + ct * y
+    z_e = z
+    r_xy = sqrt(x_e*x_e + y_e*y_e)
+    r = sqrt(r_xy*r_xy + z_e*z_e)
+    lat = degrees(asin(z_e / r)) if r else 0.0
+    lon = degrees(atan2(y_e, x_e))
+    if lon > 180: lon -= 360
+    if lon < -180: lon += 360
+    alt_km = r - R_EARTH_KM
+    return lat, lon, alt_km
+
+def _period_minutes_from_line2(line2: str) -> float | None:
+    try:
+        rev_per_day = float(line2[52:63])  # cols 53–63
+        return 1440.0 / rev_per_day
+    except Exception:
+        return None
+
+
+# ---------- endpoints ----------
+
+@router.get("/state-vectors/latest", response_model=List[StateVectorSchema])
+def latest_state_vectors(
+    limit: int = Query(10000, ge=1, le=30000),
+    db: Session = Depends(get_db),
 ):
-   
+    """
+    Latest ECI state vector per satellite.
+    Returns fields matching your `StateVector` schema.
+    """
     subq = (
-        db.query(models.StateVector)
-          .distinct(models.StateVector.norad_id)
-          .order_by(models.StateVector.norad_id,
-                    models.StateVector.timestamp.desc())
-          .limit(limit*2)
-          .subquery()
+        select(StateVectorModel.norad_id, func.max(StateVectorModel.timestamp).label("ts"))
+        .group_by(StateVectorModel.norad_id)
+        .subquery()
     )
-    rows = db.query(subq).limit(limit).all()
-    if not rows:
-        raise HTTPException(404, "No data")
 
-    out: list[schemas.SatOrbit] = []
-    for r in rows:
-        a,e,i,RAAN,ω,M0 = state_to_elements(
-            (r.x,r.y,r.z), (r.vx,r.vy,r.vz)
-        )
-        period = 2*math.pi*math.sqrt(a**3 / MU)
-        samples = int(period // step) + 1
+    stmt = (
+        select(StateVectorModel)
+        .join(subq, (StateVectorModel.norad_id == subq.c.norad_id) &
+                   (StateVectorModel.timestamp == subq.c.ts))
+        .order_by(StateVectorModel.norad_id)
+        .limit(limit)
+    )
 
-        path=[]
-        for k in range(samples):
-            M = (M0 + 2*math.pi*(k*step)/period) % (2*math.pi)
-            r_eci = elements_to_r(a,e,i,RAAN,ω,M)
-            lat,lon,alt = eci_to_lla(np.asarray(r_eci))
-            path.append((lat,lon,alt))
+    rows: Sequence[StateVectorModel] = db.execute(stmt).scalars().all()
 
-        out.append(schemas.SatOrbit(
-            norad_id=r.norad_id,
-            lat=path[0][0],
-            lon=path[0][1],
-            alt=path[0][2],
-            path=path,
-          
-        ))
-    return out
+    # ✅ Return plain dicts; FastAPI validates against response_model
+    return [
+        {
+            "timestamp": r.timestamp,
+            "norad_id": r.norad_id,
+            "x": r.x, "y": r.y, "z": r.z,
+            "vx": r.vx, "vy": r.vy, "vz": r.vz,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/satellites/{norad_id}")
+def satellite_details(norad_id: int, db: Session = Depends(get_db)):
+    """Satellite metadata for hover card."""
+    s = db.get(ObjectsModel, norad_id)
+    if not s:
+        raise HTTPException(404, "Satellite not found")
+    return {
+        "norad_id": s.norad_id,
+        "name": s.name,
+        "cospar_id": s.cospar_id,
+        "object_type": s.object_type,
+        "country_code": s.country_code,
+        "launch_date": s.launch_date,
+        "decay_date": s.decay_date,
+        "rcs_size": s.rcs_size,
+    }
+
+
+@router.get("/satellites/{norad_id}/tle/latest", response_model=TLEOutSchema)
+def tle_latest(norad_id: int, db: Session = Depends(get_db)):
+    """Latest TLE lines for a satellite (for orbit path on hover)."""
+    stmt = (
+        select(TleSetModel)
+        .where(TleSetModel.norad_id == norad_id)
+        .order_by(TleSetModel.epoch.desc())
+        .limit(1)
+    )
+    tle = db.execute(stmt).scalars().first()
+    if not tle:
+        raise HTTPException(404, "No TLE found")
+    # ✅ Return dict, not a Pydantic init
+    return {
+        "norad_id": tle.norad_id,
+        "epoch": tle.epoch,
+        "line1": tle.line1,
+        "line2": tle.line2,
+    }
+
+
+@router.get("/satellites/{norad_id}/orbit", response_model=SatOrbitSchema)
+def orbit_samples(
+    norad_id: int,
+    periods: int = Query(1, ge=1, le=3),
+    samples: int = Query(180, ge=60, le=720),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns orbit samples (lat, lon, alt_km) over `periods` orbital periods.
+    Uses latest TLE and SGP4; path length = `samples` points.
+    """
+    stmt = (
+        select(TleSetModel)
+        .where(TleSetModel.norad_id == norad_id)
+        .order_by(TleSetModel.epoch.desc())
+        .limit(1)
+    )
+    tle = db.execute(stmt).scalars().first()
+    if not tle:
+        raise HTTPException(404, "No TLE found")
+    
+    line2_text = str(tle.line2)              # <-- coerce for the type checker
+    period_min = _period_minutes_from_line2(line2_text) or 90.0
+
+    rec = Satrec.twoline2rv(tle.line1, tle.line2)
+    period_min = _period_minutes_from_line2(line2_text) or 90.0
+    total_min = period_min * periods
+    dt_sec = (total_min * 60.0) / samples
+
+    start = datetime.now(timezone.utc)
+    path: List[Tuple[float, float, float]] = []
+
+    for i in range(samples + 1):
+        t = start + timedelta(seconds=i * dt_sec)
+        jd, fr = jday(t.year, t.month, t.day, t.hour, t.minute, t.second + t.microsecond * 1e-6)
+        e, r, _ = rec.sgp4(jd, fr)
+        if e != 0 or r is None:
+            continue
+        lat, lon, alt_km = eci_to_geodetic_spherical(r[0], r[1], r[2], t)
+        path.append((lat, lon, alt_km))
+
+    lat0, lon0, alt0 = path[0] if path else (0.0, 0.0, 0.0)
+    return {
+        "norad_id": norad_id,
+        "lat": lat0,
+        "lon": lon0,
+        "alt": alt0,
+        "path": path,
+    }

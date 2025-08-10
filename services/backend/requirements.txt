@@ -5,3 +5,4 @@ kafka-python
 psycopg2-binary==2.9.9  
 asyncpg
 numpy
+sgp4==2.20

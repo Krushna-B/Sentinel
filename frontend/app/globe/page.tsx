@@ -1,13 +1,13 @@
 
-import { getSatellites } from "@/lib/getSatellites";
+import { getSatPoints } from "@/lib/api";
 import GlobePane from "@/components/GlobePane";
 import { GlobeHUD } from "@/components/GlobeHUD";
 
-const displayNumber = 1000
+const displayNumber = 10000
 
 export default async function Home(){
 
-  const sats = await getSatellites(displayNumber);
+  const sats = await getSatPoints(displayNumber);
    const stats = {
     total: sats?.length ?? 0,
     updated5m: Math.floor((sats?.length ?? 0) * 0.13),
