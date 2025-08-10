@@ -43,6 +43,7 @@ export default function GlobePane( { sats }: GlobePaneProps) {
       backgroundColor="#000"
       // globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
       globeImageUrl="//unpkg.com/three-globe/example/img/earth-day.jpg"
+      bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
       // earth-dark.jpg
       showAtmosphere={true}
 
