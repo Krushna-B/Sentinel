@@ -4,7 +4,7 @@ import { useMemo, useState,useRef,useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Sat, getSatDetails } from '@/lib/api'
 import * as THREE from 'three';
-import * as sat from 'satellite.js'
+import { tleToOrbitPath, OrbitPath } from '@/lib/tleToOrbitPath';
 import { getTLELatest } from '@/lib/api'
 import GlobeCardHUD from './GlobeCardHUD';
 const Globe = dynamic(() => import('react-globe.gl'), { ssr: false })
@@ -14,62 +14,23 @@ const R_EARTH_KM = 6371;
 const DOT_GEO = new THREE.SphereGeometry(0.9, 8, 8);       
 const DOT_MAT = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-// type OrbitPt = { lat: number; lng: number; alt: number } 
-
-// function periodMinutesFromTLE(line2: string) {
-//   const mmRevPerDay = parseFloat(line2.slice(52, 63));
-//   return 1440 / mmRevPerDay;
-// }
-
-// async function buildOrbit(line1: string, line2: string, samples = 240): Promise<OrbitPt[]> {
-//   const rec = sat.twoline2satrec(line1, line2);
-//   const periodMin = rec.no && Number.isFinite(rec.no) ? (2 * Math.PI) / (rec.no as number) : periodMinutesFromTLE(line2);
-//   const dtSec = (periodMin * 60) / samples;
-//   const start = new Date();
-
-//   const pts: OrbitPt[] = [];
-//   for (let i = 0; i <= samples; i++) {
-//     const t = new Date(start.getTime() + i * dtSec * 1000);
-//     const pv = sat.propagate(rec, t);
-//     if (!pv?.position) continue;
-//     const gmst = sat.gstime(t);
-//     const gd = sat.eciToGeodetic(pv.position as sat.EciVec3<number>, gmst);
-//     // clamp altitude a bit just for visuals (lines too far out look odd)
-//     const altFrac = Math.max(0.02, Math.min((gd.height ?? 0) / R_EARTH_KM, 0.35));
-//     pts.push({ lat: sat.degreesLat(gd.latitude), lng: sat.degreesLong(gd.longitude), alt: altFrac });
-//   }
-//   return pts;
-// }
-// function llaToVec3(lat: number, lon: number, altFrac: number, globeRadius: number) {
-//   const r = globeRadius * (1 + altFrac);
-//   const phi = (90 - lat) * Math.PI / 180;      // polar angle
-//   const theta = (lon + 180) * Math.PI / 180;   // azimuth
-//   return new THREE.Vector3(
-//     -r * Math.sin(phi) * Math.cos(theta),
-//      r * Math.cos(phi),
-//      r * Math.sin(phi) * Math.sin(theta)
-//   );
-// }
-
+type TleMap = Record<number, { line1: string; line2: string }>;
+type TleRecord = { line1: string; line2: string };
 
 interface GlobePaneProps {
-  sats: Sat[]
+  sats: Sat[];
+  tles?: TleMap | null;
 }
 
-export default function GlobePane( { sats }: GlobePaneProps) {
-  // const globeRef = useRef<any>(null);
+export default function GlobePane( { sats,tles}: GlobePaneProps) {
+  
 
   const objects = useMemo(
     () => sats.map(s => ({ id: s.norad_id, lat: s.lat, lng: s.lon, alt: (s.alt) / R_EARTH_KM })),
     [sats]
   )
   const [selectedId, setSelectedId] = useState<number | null>(null);
-
-  // const tleCache = useRef(new Map<number, { line1: string; line2: string }>());
-  // const orbitVertsCache = useRef(new Map<number, THREE.Vector3[]>()); // cache vectors
   const detailsCache = useRef(new Map<number, any>());
-  
-  // const [customOrbits, setCustomOrbits] = useState<{ id: number; vertices: THREE.Vector3[] }[]>([]);
   const [details, setDetails] = useState<any | null>(null);
 
   const handleObjectClick = (o: any) => {
@@ -80,7 +41,6 @@ export default function GlobePane( { sats }: GlobePaneProps) {
 
   const handleOnClose = () => {
     setSelectedId(null);
-    // setCustomOrbits([]);
     setDetails(null);
   };
 
@@ -110,8 +70,66 @@ export default function GlobePane( { sats }: GlobePaneProps) {
   }, [selectedId]);
 
   
+  //TLE Handling for Path Creation
+  const tleCache = useRef(new Map<number, TleRecord>());
+  const [selectedTle, setSelectedTle] = useState<TleRecord | null>(null);
+  const tleAbortRef = useRef<AbortController | null>(null);
 
-  
+  useEffect(() => {
+    // cancel any in-flight TLE fetch when selection changes
+    tleAbortRef.current?.abort();
+
+    let cancelled = false;
+
+    (async () => {
+      if (selectedId == null) {
+        setSelectedTle(null);
+        return;
+      }
+
+      // Prefer prop map (if provided), else cache
+      const fromProp = tles?.[selectedId] as TleRecord | undefined;
+      const fromCache = tleCache.current.get(selectedId);
+      let tle: TleRecord | undefined = fromProp || fromCache;
+
+      // Fetch if needed
+      if (!tle) {
+        const ctrl = new AbortController();
+        tleAbortRef.current = ctrl;
+        try {
+          const resp = await getTLELatest(selectedId, ctrl.signal).catch(() => null);
+          if (resp && resp.line1 && resp.line2) {
+            tle = { line1: resp.line1, line2: resp.line2 };
+          }
+        } catch {
+          // ignore; tle stays undefined
+        } finally {
+          // clear our ref if this was the active controller
+          if (tleAbortRef.current === ctrl) tleAbortRef.current = null;
+        }
+      }
+
+      if (cancelled) return;
+
+      if (tle) {
+        tleCache.current.set(selectedId, tle);
+        setSelectedTle(tle);
+      } else {
+        setSelectedTle(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, tles]);
+
+  // Orbit for the selected satellite only (yellow)
+  const orbits: OrbitPath[] = useMemo(() => {
+    if (selectedId == null || !selectedTle) return [];
+    const path = tleToOrbitPath(selectedTle.line1, selectedTle.line2, 240);
+    return path ? [path] : [];
+  }, [selectedId, selectedTle]);
  
   return (
     <div className="relative w-full h-[calc(100vh-64px)]">
@@ -120,9 +138,7 @@ export default function GlobePane( { sats }: GlobePaneProps) {
     <Globe
       
       backgroundColor="#000"
-    
       globeImageUrl="//unpkg.com/three-globe/example/img/earth-day.jpg"
-
       showAtmosphere={true}
 
       objectsData={objects}
@@ -133,26 +149,14 @@ export default function GlobePane( { sats }: GlobePaneProps) {
       onObjectClick={handleObjectClick} 
       onGlobeClick={() => handleOnClose()}
   
-
-
-      // customLayerData={customOrbits}
-      //   customThreeObject={(d: any) => {
-      //     const geom = new THREE.BufferGeometry().setFromPoints(d.vertices);
-      //     const mat = new THREE.LineBasicMaterial({ color: 0xffff00 });
-      //     return new THREE.Line(geom, mat);
-      //   }}
-      //   customThreeObjectUpdate={(obj: any, d: any) => {
-      //     obj.geometry.setFromPoints(d.vertices);
-      //     return obj;
-      //   }}
-      // pathsData={selectedPath}
-      // pathPoints="path"
-      // pathPointLat="lat"
-      // pathPointLng="lng"
-      // pathPointAlt="alt" 
-      // pathColor={() => 'yellow'}
-      // pathStroke={1.5}
-
+      pathsData={orbits}
+      pathPoints="points"       
+      pathPointLat="lat"
+      pathPointLng="lng"
+      pathPointAlt="alt"
+      pathColor={() => "#FFD700"}
+      pathStroke={2}   
+      pathTransitionDuration={0} // no re-animate on state changes
    
     />
     <GlobeCardHUD
