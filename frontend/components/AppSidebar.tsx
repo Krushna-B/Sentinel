@@ -35,11 +35,11 @@ const NAV_SECTIONS: {
   {
     label: "Core",
     items: [
-      { href: "/home", label: "Home", icon: Home },
+      // { href: "/home", label: "Home", icon: Home },
       { href: "/globe", label: "3D Globe", icon: Globe2 },
-      { href: "/objects", label: "Satellites", icon: Satellite },
+      // { href: "/objects", label: "Satellites", icon: Satellite },
       // { href: "/tracks", label: "Tracks", icon: Map },
-      { href: "/events", label: "Alerts", icon: Bell },
+      // { href: "/events", label: "Alerts", icon: Bell },
     ],
   },
   // {
