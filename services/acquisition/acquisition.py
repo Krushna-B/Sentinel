@@ -14,16 +14,15 @@ KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:9092")
 TOPIC = "TLE.raw"
 
 SPACE_TRACK_LOGIN_URL = "https://www.space-track.org/ajaxauth/login"
-SPACE_TRACK_URL = (
-    "https://www.space-track.org/basicspacedata/query/"
-    "class/gp/"
-    "decay_date/null-val/"
-    "epoch/%3Enow-100/"
-    "orderby/norad_cat_id/"
-    "format/json"
-)
 
-FETCH_INTERVAL = 10 * 60   #30 minute wait on data fetch
+SPACE_TRACK_URL = ( "https://www.space-track.org/basicspacedata/query/"
+                    "class/gp/"
+                   " DECAY_DATE/null-val/"
+                  "  EPOCH/>now-100/"
+                 "   orderby/NORAD_CAT_ID asc/"
+                   " format/json")
+
+FETCH_INTERVAL = 15 * 60   #10 minute wait on data fetch
 
 def create_spacetrack_session():
     session = requests.Session()
