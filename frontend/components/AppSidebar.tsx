@@ -38,18 +38,18 @@ const NAV_SECTIONS: {
       { href: "/home", label: "Home", icon: Home },
       { href: "/globe", label: "3D Globe", icon: Globe2 },
       { href: "/objects", label: "Satellites", icon: Satellite },
-      { href: "/tracks", label: "Tracks", icon: Map },
+      // { href: "/tracks", label: "Tracks", icon: Map },
       { href: "/events", label: "Alerts", icon: Bell },
     ],
   },
-  {
-    label: "Analysis",
-    items: [
-      { href: "/cpa", label: "CPA", icon: Radar },
-      { href: "/metrics", label: "Metrics", icon: Activity },
-      { href: "/data", label: "Data", icon: Database },
-    ],
-  },
+  // {
+  //   label: "Analysis",
+  //   items: [
+  //     { href: "/cpa", label: "CPA", icon: Radar },
+  //     { href: "/metrics", label: "Metrics", icon: Activity },
+  //     { href: "/data", label: "Data", icon: Database },
+  //   ],
+  // },
 ];
 
 // Theme toggle stub (swap with your theme logic if you use next-themes)
@@ -144,7 +144,7 @@ export default function AppSidebar() {
           <Separator className="my-2" />
 
          
-          <nav className="flex w-full flex-col items-center gap-1">
+          {/* <nav className="flex w-full flex-col items-center gap-1">
             {NAV_SECTIONS[1].items.map((item) => (
               <RailItem
                 key={item.href}
@@ -154,7 +154,7 @@ export default function AppSidebar() {
                 active={pathname === item.href}
               />
             ))}
-          </nav>
+          </nav> */}
         </div>
 
    

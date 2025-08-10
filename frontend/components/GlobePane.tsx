@@ -7,7 +7,7 @@ import * as THREE from 'three';
 const Globe = dynamic(() => import('react-globe.gl'), { ssr: false })
 
 const R_EARTH_KM = 6371;    
-const DOT_GEO = new THREE.SphereGeometry(0.6, 8, 8);       // << here
+const DOT_GEO = new THREE.SphereGeometry(0.9, 8, 8);       // << here
 const DOT_MAT = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
 
