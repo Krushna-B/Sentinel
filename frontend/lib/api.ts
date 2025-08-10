@@ -1,12 +1,13 @@
-// lib/api.ts
+// lib/api.ts2
 import * as sat from "satellite.js";
 
-const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api";
-const R_EARTH_KM = 6371;
+const API = process.env.NEXT_PUBLIC_API_BASE;
+
 
 // -------- Types --------
 export type SVLatest = {
   norad_id: number;
+
   timestamp: string;
   x: number; y: number; z: number;
   vx: number; vy: number; vz: number;
@@ -14,6 +15,7 @@ export type SVLatest = {
 
 export type Sat = {
   norad_id: number;
+
   lat: number;        // degrees
   lon: number;        // degrees
   alt: number;        // km above surface
