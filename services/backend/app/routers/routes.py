@@ -4,9 +4,9 @@ from .. import database, models, schemas
 from ..utils.orbit import state_to_elements, elements_to_r, eci_to_lla, MU
 import math, numpy as np
 
-router = APIRouter(prefix="/satellites", tags=["satellites"])
+router = APIRouter()
 
-@router.get("/", response_model=list[schemas.SatOrbit])
+@router.get("/satillites", response_model=list[schemas.SatOrbit])
 def orbits_from_state(
     limit: int = Query(100, gt=1, le=10000),
     step: int = Query(60, ge=10, le=600),
