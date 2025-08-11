@@ -121,9 +121,9 @@ export default function AppSidebar() {
       >
         
         <div className="flex w-full flex-col items-center gap-3">
-          <Button size="icon" variant="ghost" className="h-10 w-10" aria-label="Open menu">
+          {/* <Button size="icon" variant="ghost" className="h-10 w-10" aria-label="Open menu">
             <Menu className="h-5 w-5" />
-          </Button>
+          </Button> */}
 
        
           <Separator className="my-2"/>
@@ -158,9 +158,9 @@ export default function AppSidebar() {
         </div>
 
    
-        <div className="flex w-full flex-col items-center gap-2">
+        {/* <div className="flex w-full flex-col items-center gap-2">
           <ThemeToggle />
-        </div>
+        </div> */}
 
       </aside>
 

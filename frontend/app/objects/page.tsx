@@ -40,89 +40,91 @@ export default function ObjectsPage() {
   }, [q, orbit, status]);
 
   return (
-    <div className="h-full p-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative">
-          <Input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search NORAD or name…" className="w-72 pl-3" />
-        </div>
+    <>
+    </>
+    // <div className="h-full p-6">
+    //   <div className="flex flex-wrap items-center gap-2">
+    //     <div className="relative">
+    //       <Input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search NORAD or name…" className="w-72 pl-3" />
+    //     </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline"><Filter className="mr-2 size-4" />Orbit: {orbit}</Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuLabel>Orbit</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {(["ALL","LEO","MEO","GEO","HEO"] as const).map(o=>(
-              <DropdownMenuItem key={o} onClick={()=>setOrbit(o)}>{o}</DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+    //     <DropdownMenu>
+    //       <DropdownMenuTrigger asChild>
+    //         <Button variant="outline"><Filter className="mr-2 size-4" />Orbit: {orbit}</Button>
+    //       </DropdownMenuTrigger>
+    //       <DropdownMenuContent align="start">
+    //         <DropdownMenuLabel>Orbit</DropdownMenuLabel>
+    //         <DropdownMenuSeparator />
+    //         {(["ALL","LEO","MEO","GEO","HEO"] as const).map(o=>(
+    //           <DropdownMenuItem key={o} onClick={()=>setOrbit(o)}>{o}</DropdownMenuItem>
+    //         ))}
+    //       </DropdownMenuContent>
+    //     </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline"><Filter className="mr-2 size-4" />Status: {status}</Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuLabel>Status</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {(["ALL","active","decayed","unknown"] as const).map(s=>(
-              <DropdownMenuItem key={s} onClick={()=>setStatus(s)}>{s}</DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+    //     <DropdownMenu>
+    //       <DropdownMenuTrigger asChild>
+    //         <Button variant="outline"><Filter className="mr-2 size-4" />Status: {status}</Button>
+    //       </DropdownMenuTrigger>
+    //       <DropdownMenuContent align="start">
+    //         <DropdownMenuLabel>Status</DropdownMenuLabel>
+    //         <DropdownMenuSeparator />
+    //         {(["ALL","active","decayed","unknown"] as const).map(s=>(
+    //           <DropdownMenuItem key={s} onClick={()=>setStatus(s)}>{s}</DropdownMenuItem>
+    //         ))}
+    //       </DropdownMenuContent>
+    //     </DropdownMenu>
 
-        <div className="ml-auto flex gap-2">
-          <Button variant="outline"><Upload className="mr-2 size-4" />Import TLE</Button>
-          <Button><Plus className="mr-2 size-4" />New Watchlist</Button>
-        </div>
-      </div>
+    //     <div className="ml-auto flex gap-2">
+    //       <Button variant="outline"><Upload className="mr-2 size-4" />Import TLE</Button>
+    //       <Button><Plus className="mr-2 size-4" />New Watchlist</Button>
+    //     </div>
+    //   </div>
 
-    <div className="py-4">
+    // <div className="py-4">
 
-    </div>
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Satellite className="size-4" /> Satellites
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableCaption>{rows.length} satellites</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>NORAD</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Orbit</TableHead>
-                <TableHead className="text-right">Alt (km)</TableHead>
-                <TableHead className="text-right">Vel (km/s)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map(r=>(
-                <TableRow key={r.norad}>
-                  <TableCell>{r.norad}</TableCell>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell>{r.orbit}</TableCell>
-                  <TableCell className="text-right">{r.altKm.toFixed(0)}</TableCell>
-                  <TableCell className="text-right">{r.velKms.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge variant={r.status==="active"?"default":r.status==="decayed"?"destructive":"secondary"}>
-                      {r.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm"><Eye className="mr-1 size-4" />View</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+    // </div>
+    //   <Card>
+    //     <CardHeader className="flex-row items-center justify-between">
+    //       <CardTitle className="flex items-center gap-2">
+    //         <Satellite className="size-4" /> Satellites
+    //       </CardTitle>
+    //     </CardHeader>
+    //     <CardContent>
+    //       <Table>
+    //         <TableCaption>{rows.length} satellites</TableCaption>
+    //         <TableHeader>
+    //           <TableRow>
+    //             <TableHead>NORAD</TableHead>
+    //             <TableHead>Name</TableHead>
+    //             <TableHead>Orbit</TableHead>
+    //             <TableHead className="text-right">Alt (km)</TableHead>
+    //             <TableHead className="text-right">Vel (km/s)</TableHead>
+    //             <TableHead>Status</TableHead>
+    //             <TableHead className="text-right">Actions</TableHead>
+    //           </TableRow>
+    //         </TableHeader>
+    //         <TableBody>
+    //           {rows.map(r=>(
+    //             <TableRow key={r.norad}>
+    //               <TableCell>{r.norad}</TableCell>
+    //               <TableCell className="font-medium">{r.name}</TableCell>
+    //               <TableCell>{r.orbit}</TableCell>
+    //               <TableCell className="text-right">{r.altKm.toFixed(0)}</TableCell>
+    //               <TableCell className="text-right">{r.velKms.toFixed(2)}</TableCell>
+    //               <TableCell>
+    //                 <Badge variant={r.status==="active"?"default":r.status==="decayed"?"destructive":"secondary"}>
+    //                   {r.status}
+    //                 </Badge>
+    //               </TableCell>
+    //               <TableCell className="text-right">
+    //                 <Button variant="ghost" size="sm"><Eye className="mr-1 size-4" />View</Button>
+    //               </TableCell>
+    //             </TableRow>
+    //           ))}
+    //         </TableBody>
+    //       </Table>
+    //     </CardContent>
+    //   </Card>
+    // </div>
   );
 }
