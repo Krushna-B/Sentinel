@@ -2,7 +2,7 @@
 import { getSatPoints } from "@/lib/api";
 import GlobePane from "@/components/GlobePane";
 
-const displayNumber = 15000
+const displayNumber = 10000
 
 export default async function Home(){
 
