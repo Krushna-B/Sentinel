@@ -24,7 +24,7 @@ SPACE_TRACK_URL = (
     "format/json"
 )
 
-FETCH_INTERVAL = 15 * 60   #10 minute wait on data fetch
+FETCH_INTERVAL = 60 * 60   #10 minute wait on data fetch
 
 def create_spacetrack_session():
     session = requests.Session()

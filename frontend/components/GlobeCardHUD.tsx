@@ -15,14 +15,20 @@ type SatDetails = {
 interface GlobeCardHUDProps{
     objects: Sat[]
     selectedId: number | null
-    details?: SatDetails | null
+    details?: SatDetails | null;
+    live?: { lat: number; lon: number; altKm: number; updatedAt?: string } | null;
+
     onClose: () => void;    
 }
 
 
-export default function GlobeCardHUD({selectedId,objects,details, onClose}:GlobeCardHUDProps) {
+export default function GlobeCardHUD({selectedId,objects,details,live ,onClose}:GlobeCardHUDProps) {
   if (selectedId == null) return null;
-  const obj = objects.find(o => o.norad_id === selectedId);
+  const obj = objects.find(o => o.norad_id === selectedId); 
+   const lat = live?.lat ?? obj?.lat ?? 0;
+  const lon = live?.lon ?? obj?.lon ?? 0;
+  const altKm = live?.altKm ?? obj?.alt ?? 0;
+
 
   return (
     <div className="pointer-events-none fixed top-4 right-4 z-50">
@@ -54,9 +60,9 @@ export default function GlobeCardHUD({selectedId,objects,details, onClose}:Globe
 
             {obj && (
               <div className="text-xs mt-1">
-                lat <span className="font-medium">{obj.lat.toFixed(2)}°</span>,{" "}
-                lon <span className="font-medium">{obj.lon.toFixed(2)}°</span>,{" "}
-                alt <span className="font-medium">{Math.round(obj.alt).toLocaleString()} km</span>
+                lat <span className="font-medium">{lat.toFixed(2)}°</span>,{" "}
+                lon <span className="font-medium">{lon.toFixed(2)}°</span>,{" "}
+                alt <span className="font-medium">{Math.round(altKm).toLocaleString()} km</span>
               </div>
             )}
           </div>

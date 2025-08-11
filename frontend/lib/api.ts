@@ -3,8 +3,9 @@ import * as sat from "satellite.js";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 
+const R_EARTH_KM = 6371.0;                 
+const RAD2DEG = 180 / Math.PI;
 
-// -------- Types --------
 export type SVLatest = {
   norad_id: number;
 
@@ -16,28 +17,43 @@ export type SVLatest = {
 export type Sat = {
   norad_id: number;
 
-  lat: number;        // degrees
-  lon: number;        // degrees
-  alt: number;        // km above surface
-  path: [number, number, number][]; // [lat, lon, alt_km] (empty until you draw orbit)
+  lat: number;       
+  lon: number;        
+  alt: number;        
+  path: [number, number, number][]; 
 };
 
-// -------- Helpers --------
-function eciToGeodeticKm(r: { x: number; y: number; z: number }, isoTs: string) {
-  const t = new Date(isoTs);
-  const gmst = sat.gstime(t);
-  const gd = sat.eciToGeodetic(r as any, gmst);
-  return {
-    lat: sat.degreesLat(gd.latitude),
-    lon: sat.degreesLong(gd.longitude),
-    alt: (gd.height ?? 0), // km above surface
-  };
+function normalizeLonDeg(deg: number) {
+  return ((deg + 180) % 360 + 360) % 360 - 180; 
 }
 
-// -------- API calls --------
+export function eciToGeodeticSpherical(
+  r: { x: number; y: number; z: number },
+  isoTs: string
+) {
+  const t = new Date(isoTs);
+  const gmst = sat.gstime(t);        // radians
 
-// 1) Latest ECI per satellite (raw)
-export async function getLatestSV(limit = 8000): Promise<SVLatest[]> {
+  // ECI -> ECEF rotation about Z by +GMST
+  const cosG = Math.cos(gmst), sinG = Math.sin(gmst);
+  const x =  cosG * r.x + sinG * r.y;
+  const y = -sinG * r.x + cosG * r.y;
+  const z =  r.z;
+
+  const rxy = Math.hypot(x, y);
+  const rmag = Math.hypot(rxy, z);
+
+  const lat = Math.atan2(z, rxy) * RAD2DEG;
+  const lon = normalizeLonDeg(Math.atan2(y, x) * RAD2DEG);
+  const alt = rmag - R_EARTH_KM;
+
+  return { lat, lon, alt };
+}
+
+
+
+
+export async function getLatestSV(limit = 20000): Promise<SVLatest[]> {
   const url = new URL(`${API}/state-vectors/latest`);
   url.searchParams.set("limit", String(limit));
   const r = await fetch(url.toString(), { cache: "no-store" });
@@ -46,10 +62,10 @@ export async function getLatestSV(limit = 8000): Promise<SVLatest[]> {
 }
 
 // 2) Points for the globe (lat/lon/alt), derived from latest ECI
-export async function getSatPoints(limit = 8000): Promise<Sat[]> {
+export async function getSatPoints(limit = 20000): Promise<Sat[]> {
   const rows = await getLatestSV(limit);
   return rows.map((r) => {
-    const g = eciToGeodeticKm({ x: r.x, y: r.y, z: r.z }, r.timestamp);
+    const g = eciToGeodeticSpherical({ x: r.x, y: r.y, z: r.z }, r.timestamp);
     return {
       norad_id: r.norad_id,
       lat: g.lat,
@@ -60,7 +76,7 @@ export async function getSatPoints(limit = 8000): Promise<Sat[]> {
   });
 }
 
-// 3) Latest TLE (for client-side orbit)
+
 export async function getTLELatest(norad: number, signal?: AbortSignal) {
   const url = `${API}/satellites/${norad}/tle/latest`;
   try {
@@ -82,14 +98,14 @@ export async function getTLELatest(norad: number, signal?: AbortSignal) {
   }
 }
 
-// (Optional) 4) Server-side orbit (use this instead of client compute if you like)
+
 export async function getOrbit(norad: number, periods = 1, samples = 180) {
   const url = new URL(`${API}/satellites/${norad}/orbit`);
   url.searchParams.set("periods", String(periods));
   url.searchParams.set("samples", String(samples));
   const r = await fetch(url.toString(), { cache: "no-store" });
   if (!r.ok) throw new Error("orbit fetch failed");
-  return r.json() as Promise<{ norad_id: number; lat: number; lon: number; alt: number; path: [number, number, number][] }>;
+  return r.json() as Promise<{ norad_id: number; lat: number; lon: number; alt: number; velocity: [number, number, number]; path: [number, number, number][] }>;
 }
 
 export async function getSatDetails(norad: number) {
@@ -103,4 +119,36 @@ export async function getSatDetails(norad: number) {
     country_code: string | null;
     launch_date: string | null;
   }>;
+}
+
+
+export type OrbitEntry = {
+  norad_id: number;
+  t0_utc?: string;
+  tle_epoch_utc?: string;
+  lat: number;
+  lon: number;
+  alt: number; // km
+  velocity?: [number, number, number];
+  period_minutes?: number;
+  dt_sec?: number;
+  path?: [number, number, number][];
+  error?: string;
+};
+
+
+export async function getOrbitsBulk(
+  ids: number[],
+  periods = 1,
+  samples = 200,
+  at?: string // ISO string optional
+): Promise<{ at_utc: string; count: number; results: OrbitEntry[] }> {
+  const url = new URL(`${API}/satellites/orbits`);
+  url.searchParams.set("ids", ids.join(","));
+  url.searchParams.set("periods", String(periods));
+  url.searchParams.set("samples", String(samples));
+  if (at) url.searchParams.set("at", at);
+  const r = await fetch(url.toString(), { cache: "no-store" });
+  if (!r.ok) throw new Error("getOrbitsBulk failed");
+  return r.json();
 }
