@@ -5,7 +5,7 @@ const R_EARTH_KM = 6371;
 export type OrbitPoint = { lat: number; lng: number; alt: number };
 export type OrbitPath  = { id: number; points: OrbitPoint[] };
 
-export function tleToOrbitPath(tle1: string, tle2: string, samples = 2000): OrbitPath | null {
+export function tleToOrbitPath(tle1: string, tle2: string, samples = 400): OrbitPath | null {
   try {
     const rec = sat.twoline2satrec(tle1, tle2);
     const n = (rec as any).no_kozai ?? rec.no;            // rad/min

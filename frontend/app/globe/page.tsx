@@ -1,8 +1,8 @@
 
-import { getSatPoints } from "@/lib/api";
+import { getSatPoints , getSatDetails} from "@/lib/api";
 import GlobePane from "@/components/GlobePane";
 
-const displayNumber = 10000
+const displayNumber = 2
 
 export default async function Home(){
 

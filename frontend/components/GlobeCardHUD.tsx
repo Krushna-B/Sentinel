@@ -15,7 +15,7 @@ type SatDetails = {
 interface GlobeCardHUDProps{
     objects: Sat[]
     selectedId: number | null
-    details?: SatDetails | null
+    details: SatDetails | null
     onClose: () => void;    
 }
 

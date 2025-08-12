@@ -2,7 +2,8 @@
 import * as sat from "satellite.js";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
-
+const DEFAULT_HEADERS = { "ngrok-skip-browser-warning": "true" as const };
+const baseInit: RequestInit = { cache: "no-store", headers: DEFAULT_HEADERS };
 
 // -------- Types --------
 export type SVLatest = {
@@ -40,7 +41,7 @@ function eciToGeodeticKm(r: { x: number; y: number; z: number }, isoTs: string) 
 export async function getLatestSV(limit = 8000): Promise<SVLatest[]> {
   const url = new URL(`${API}/state-vectors/latest`);
   url.searchParams.set("limit", String(limit));
-  const r = await fetch(url.toString(), { cache: "no-store" });
+  const r = await fetch(url.toString(), baseInit);
   if (!r.ok) throw new Error("getLatestSV failed");
   return r.json();
 }
@@ -64,7 +65,7 @@ export async function getSatPoints(limit = 8000): Promise<Sat[]> {
 export async function getTLELatest(norad: number, signal?: AbortSignal) {
   const url = `${API}/satellites/${norad}/tle/latest`;
   try {
-    const r = await fetch(url, { cache: "no-store", signal });
+    const r = await fetch(url, { ...baseInit, signal });
     if (!r.ok) {
       const txt = await r.text().catch(() => "");
       console.warn("TLE not ok:", url, r.status, txt);
@@ -87,13 +88,13 @@ export async function getOrbit(norad: number, periods = 1, samples = 180) {
   const url = new URL(`${API}/satellites/${norad}/orbit`);
   url.searchParams.set("periods", String(periods));
   url.searchParams.set("samples", String(samples));
-  const r = await fetch(url.toString(), { cache: "no-store" });
+  const r = await fetch(url.toString(), baseInit);
   if (!r.ok) throw new Error("orbit fetch failed");
   return r.json() as Promise<{ norad_id: number; lat: number; lon: number; alt: number; path: [number, number, number][] }>;
 }
 
 export async function getSatDetails(norad: number) {
-  const r = await fetch(`${API}/satellites/${norad}`, { cache: "no-store" });
+  const r = await fetch(`${API}/satellites/${norad}`, baseInit);
   if (!r.ok) throw new Error("no satellite " + norad);
   return r.json() as Promise<{
     norad_id: number;

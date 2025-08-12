@@ -23,8 +23,6 @@ interface GlobePaneProps {
 }
 
 export default function GlobePane( { sats,tles}: GlobePaneProps) {
-  
-
   const objects = useMemo(
     () => sats.map(s => ({ id: s.norad_id, lat: s.lat, lng: s.lon, alt: (s.alt) / R_EARTH_KM })),
     [sats]
@@ -38,7 +36,6 @@ export default function GlobePane( { sats,tles}: GlobePaneProps) {
     const id = o.id as number;
     setSelectedId(prev => (prev === id ? null : id)); 
   };
-
   const handleOnClose = () => {
     setSelectedId(null);
     setDetails(null);
@@ -69,12 +66,11 @@ export default function GlobePane( { sats,tles}: GlobePaneProps) {
     return () => { cancelled = true; };
   }, [selectedId]);
 
-  
-  //TLE Handling for Path Creation
+  // TLE Handling for Path Creation
+
   const tleCache = useRef(new Map<number, TleRecord>());
   const [selectedTle, setSelectedTle] = useState<TleRecord | null>(null);
   const tleAbortRef = useRef<AbortController | null>(null);
-
   useEffect(() => {
     // cancel any in-flight TLE fetch when selection changes
     tleAbortRef.current?.abort();
@@ -124,7 +120,6 @@ export default function GlobePane( { sats,tles}: GlobePaneProps) {
     };
   }, [selectedId, tles]);
 
-  // Orbit for the selected satellite only (yellow)
   const orbits: OrbitPath[] = useMemo(() => {
     if (selectedId == null || !selectedTle) return [];
     const path = tleToOrbitPath(selectedTle.line1, selectedTle.line2, 240);
@@ -147,7 +142,7 @@ export default function GlobePane( { sats,tles}: GlobePaneProps) {
       objectAltitude="alt"
       objectThreeObject={() => new THREE.Mesh(DOT_GEO, DOT_MAT)}
       onObjectClick={handleObjectClick} 
-      onGlobeClick={() => handleOnClose()}
+      // onGlobeClick={() => handleOnClose()}
   
       pathsData={orbits}
       pathPoints="points"       
