@@ -73,3 +73,5 @@ class StateVector(Base):
         UniqueConstraint("norad_id", "timestamp", name="uq_sv_norad_ts"),
         Index("ix_sv_norad_ts", "norad_id", "timestamp"),
     )
+
+    

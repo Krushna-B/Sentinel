@@ -38,10 +38,6 @@ class SatOrbit(BaseModel):
         description="Orbit samples as (lat, lon, alt_km)",
     )
 
-
-
-
-
 class TLEOut(BaseModel):
     norad_id: int
     epoch: datetime | None = None

@@ -1,4 +1,0 @@
-#Service - Propogator/ Requirements.txt
-confluent-kafka>=2.0.0
-kafka-python==2.0.2
-sgp4==2.20
