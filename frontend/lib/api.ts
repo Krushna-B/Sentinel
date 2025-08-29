@@ -22,44 +22,6 @@ export type Sat = {
   path?: [number, number, number][]; 
 };
 
-
-// function eciToGeodeticKm(r: { x: number; y: number; z: number }, isoTs: string) {
-//   const t = new Date(isoTs);
-//   const gmst = sat.gstime(t);
-//   const gd = sat.eciToGeodetic(r as any, gmst);
-//   return {
-//     lat: sat.degreesLat(gd.latitude),
-//     lon: sat.degreesLong(gd.longitude),
-//     alt: (gd.height ?? 0), // km above surface
-//   };
-// }
-
-
-
-
-// export async function getLatestSV(limit = 8000): Promise<SVLatest[]> {
-//   const url = new URL(`${API}/state-vectors/latest`);
-//   url.searchParams.set("limit", String(limit));
-//   const r = await fetch(url.toString(), baseInit);
-//   if (!r.ok) throw new Error("getLatestSV failed");
-//   return r.json();
-// }
-
-
-// export async function getSatPoints(limit = 8000): Promise<Sat[]> {
-//   const rows = await getLatestSV(limit);
-//   return rows.map((r) => {
-//     const g = eciToGeodeticKm({ x: r.x, y: r.y, z: r.z }, r.timestamp);
-//     return {
-//       norad_id: r.norad_id,
-//       lat: g.lat,
-//       lon: g.lon,
-//       alt: g.alt,
-//       path: [], 
-//     };
-//   });
-// }
-
 export async function getSatPoints(limit = 20000): Promise<Sat[]> {
   const url = new URL(`${API}/satellites/positions/all`);
   url.searchParams.set("limit", String(limit));
@@ -80,11 +42,11 @@ if (!r.ok) {
     lat: row.lat,
     lon: row.lon,
     alt: row.alt,
-    path: [], // fill only when you fetch /satellites/{id}/orbit
+    path: [], 
   }));
 }
 
-// 3) Latest TLE (for client-side orbit)
+// Latest TLE (for client-side orbit)
 export async function getTLELatest(norad: number, signal?: AbortSignal) {
   const url = (`${API}/satellites/${norad}/tle/latest`);
   console.log(url)

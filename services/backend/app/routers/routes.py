@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
 from math import cos, sin, sqrt, asin, atan2, degrees, pi
-from typing import List, Tuple, Sequence
+from typing import List, Tuple, Sequence, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
@@ -20,6 +20,7 @@ from ..models import TleSet as TleSetModel
 from ..schemas import StateVector as StateVectorSchema
 from ..schemas import TLEOut as TLEOutSchema
 from ..schemas import SatOrbit as SatOrbitSchema
+from ..schemas import SatPointOut 
 
 from sgp4.api import Satrec, jday
 
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/api")
 R_EARTH_KM = 6371.0
 
 
-# ---------- helpers ----------
+
 
 def _gmst_rad(ts: datetime) -> float:
     jd, fr = jday(ts.year, ts.month, ts.day,
@@ -57,13 +58,13 @@ def eci_to_geodetic_spherical(x: float, y: float, z: float, ts: datetime) -> Tup
 
 def _period_minutes_from_line2(line2: str) -> float | None:
     try:
-        rev_per_day = float(line2[52:63])  # cols 53–63
+        rev_per_day = float(line2[52:63])  #
         return 1440.0 / rev_per_day
     except Exception:
         return None
 
 
-# ---------- endpoints ----------
+
 
 @router.get("/state-vectors/latest", response_model=List[StateVectorSchema])
 def latest_state_vectors(
@@ -90,7 +91,7 @@ def latest_state_vectors(
 
     rows: Sequence[StateVectorModel] = db.execute(stmt).scalars().all()
 
-    # ✅ Return plain dicts; FastAPI validates against response_model
+   
     return [
         {
             "timestamp": r.timestamp,
@@ -132,7 +133,7 @@ def tle_latest(norad_id: int, db: Session = Depends(get_db)):
     tle = db.execute(stmt).scalars().first()
     if not tle:
         raise HTTPException(404, "No TLE found")
-    # ✅ Return dict, not a Pydantic init
+    
     return {
         "norad_id": tle.norad_id,
         "epoch": tle.epoch,
@@ -190,3 +191,61 @@ def orbit_samples(
         "alt": alt0,
         "path": path,
     }
+
+@router.get("/satellites/positions/all", response_model=List[SatPointOut])
+def all_satellite_positions(
+    db: Session = Depends(get_db),
+):
+    """
+    Current position (lat, lon, alt_km) for every satellite, using the latest TLE only.
+    Computes everyone at the same UTC timestamp (now).
+    """
+    # Latest TLE per NORAD
+    latest_subq = (
+        select(
+            TleSetModel.norad_id.label("norad_id"),
+            func.max(TleSetModel.epoch).label("max_epoch"),
+        )
+        .group_by(TleSetModel.norad_id)
+        .subquery()
+    )
+
+    stmt = (
+        select(TleSetModel)
+        .join(
+            latest_subq,
+            (TleSetModel.norad_id == latest_subq.c.norad_id)
+            & (TleSetModel.epoch == latest_subq.c.max_epoch),
+        )
+        .order_by(TleSetModel.norad_id)
+    )
+
+  
+    rows: Sequence[TleSetModel] = db.execute(stmt).scalars().all()
+   
+
+    t_now = datetime.now(timezone.utc)
+    jd, fr = jday(
+        t_now.year, t_now.month, t_now.day,
+        t_now.hour, t_now.minute, t_now.second + t_now.microsecond * 1e-6
+    )
+
+    out: List[SatPointOut] = []
+    for tle in rows:
+        try:
+            
+            line1 = cast(str, tle.line1)
+            line2 = cast(str, tle.line2)
+            norad = cast(int, tle.norad_id)
+
+            rec = Satrec.twoline2rv(line1, line2)
+            e, r, _ = rec.sgp4(jd, fr)
+            if e != 0 or r is None:
+                continue
+
+            lat, lon, alt_km = eci_to_geodetic_spherical(r[0], r[1], r[2], t_now)
+            out.append(SatPointOut(norad_id=norad, lat=float(lat), lon=float(lon), alt=float(alt_km)))
+        except Exception:
+            continue
+
+    return out

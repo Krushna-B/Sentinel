@@ -45,6 +45,12 @@ class TLEOut(BaseModel):
     line2: str
 
 
+class SatPointOut(BaseModel):
+    norad_id: int
+    lat: float
+    lon: float
+    alt: float
+
 
 class Config:
     orm_mode = True 

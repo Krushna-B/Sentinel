@@ -12,7 +12,7 @@ export function tleToOrbitPath(tle1: string, tle2: string, samples = 400): Orbit
 
     const periodMin = (2 * Math.PI) / n;
     const t0 = new Date();
-    const gmst0 = sat.gstime(t0);                          // <-- FIX: freeze GMST
+    const gmst0 = sat.gstime(t0);                          
 
     const points: OrbitPoint[] = [];
     for (let i = 0; i < samples; i++) {
