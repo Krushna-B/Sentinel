@@ -1,11 +1,10 @@
-// lib/api.ts2
 import * as sat from "satellite.js";
 
 const API = process.env.NEXT_PUBLIC_API_BASE;
 const DEFAULT_HEADERS = { "ngrok-skip-browser-warning": "true" as const };
 const baseInit: RequestInit = { cache: "no-store", headers: DEFAULT_HEADERS };
 
-// -------- Types --------
+
 export type SVLatest = {
   norad_id: number;
 
@@ -17,55 +16,80 @@ export type SVLatest = {
 export type Sat = {
   norad_id: number;
 
-  lat: number;        // degrees
-  lon: number;        // degrees
-  alt: number;        // km above surface
-  path: [number, number, number][]; // [lat, lon, alt_km] (empty until you draw orbit)
+  lat: number;        
+  lon: number;       
+  alt: number;       
+  path?: [number, number, number][]; 
 };
 
-// -------- Helpers --------
-function eciToGeodeticKm(r: { x: number; y: number; z: number }, isoTs: string) {
-  const t = new Date(isoTs);
-  const gmst = sat.gstime(t);
-  const gd = sat.eciToGeodetic(r as any, gmst);
-  return {
-    lat: sat.degreesLat(gd.latitude),
-    lon: sat.degreesLong(gd.longitude),
-    alt: (gd.height ?? 0), // km above surface
-  };
-}
 
-// -------- API calls --------
+// function eciToGeodeticKm(r: { x: number; y: number; z: number }, isoTs: string) {
+//   const t = new Date(isoTs);
+//   const gmst = sat.gstime(t);
+//   const gd = sat.eciToGeodetic(r as any, gmst);
+//   return {
+//     lat: sat.degreesLat(gd.latitude),
+//     lon: sat.degreesLong(gd.longitude),
+//     alt: (gd.height ?? 0), // km above surface
+//   };
+// }
 
-// 1) Latest ECI per satellite (raw)
-export async function getLatestSV(limit = 8000): Promise<SVLatest[]> {
-  const url = new URL(`${API}/state-vectors/latest`);
+
+
+
+// export async function getLatestSV(limit = 8000): Promise<SVLatest[]> {
+//   const url = new URL(`${API}/state-vectors/latest`);
+//   url.searchParams.set("limit", String(limit));
+//   const r = await fetch(url.toString(), baseInit);
+//   if (!r.ok) throw new Error("getLatestSV failed");
+//   return r.json();
+// }
+
+
+// export async function getSatPoints(limit = 8000): Promise<Sat[]> {
+//   const rows = await getLatestSV(limit);
+//   return rows.map((r) => {
+//     const g = eciToGeodeticKm({ x: r.x, y: r.y, z: r.z }, r.timestamp);
+//     return {
+//       norad_id: r.norad_id,
+//       lat: g.lat,
+//       lon: g.lon,
+//       alt: g.alt,
+//       path: [], 
+//     };
+//   });
+// }
+
+export async function getSatPoints(limit = 20000): Promise<Sat[]> {
+  const url = new URL(`${API}/satellites/positions/all`);
   url.searchParams.set("limit", String(limit));
-  const r = await fetch(url.toString(), baseInit);
-  if (!r.ok) throw new Error("getLatestSV failed");
-  return r.json();
-}
 
-// 2) Points for the globe (lat/lon/alt), derived from latest ECI
-export async function getSatPoints(limit = 8000): Promise<Sat[]> {
-  const rows = await getLatestSV(limit);
-  return rows.map((r) => {
-    const g = eciToGeodeticKm({ x: r.x, y: r.y, z: r.z }, r.timestamp);
-    return {
-      norad_id: r.norad_id,
-      lat: g.lat,
-      lon: g.lon,
-      alt: g.alt,
-      path: [], // compute on hover (client) or fetch via getOrbit()
-    };
-  });
+  const r = await fetch(url.toString(), baseInit);
+if (!r.ok) {
+    // Log details so we can see status and any backend error message
+    let body = "";
+    try { body = await r.text(); } catch {}
+    console.error("getSatPoints failed", { url, status: r.status, body });
+    throw new Error("getSatPoints failed");
+  }
+
+  const rows = (await r.json()) as { norad_id: number; lat: number; lon: number; alt: number }[];
+
+  return rows.map((row) => ({
+    norad_id: row.norad_id,
+    lat: row.lat,
+    lon: row.lon,
+    alt: row.alt,
+    path: [], // fill only when you fetch /satellites/{id}/orbit
+  }));
 }
 
 // 3) Latest TLE (for client-side orbit)
 export async function getTLELatest(norad: number, signal?: AbortSignal) {
-  const url = `${API}/satellites/${norad}/tle/latest`;
+  const url = (`${API}/satellites/${norad}/tle/latest`);
+  console.log(url)
   try {
-    const r = await fetch(url, { ...baseInit, signal });
+    const r = await fetch(url.toString());
     if (!r.ok) {
       const txt = await r.text().catch(() => "");
       console.warn("TLE not ok:", url, r.status, txt);
@@ -83,7 +107,7 @@ export async function getTLELatest(norad: number, signal?: AbortSignal) {
   }
 }
 
-// (Optional) 4) Server-side orbit (use this instead of client compute if you like)
+
 export async function getOrbit(norad: number, periods = 1, samples = 180) {
   const url = new URL(`${API}/satellites/${norad}/orbit`);
   url.searchParams.set("periods", String(periods));
@@ -94,7 +118,7 @@ export async function getOrbit(norad: number, periods = 1, samples = 180) {
 }
 
 export async function getSatDetails(norad: number) {
-  const r = await fetch(`${API}/satellites/${norad}`, baseInit);
+  const r = await fetch(`${API}/satellites/${norad}`);
   if (!r.ok) throw new Error("no satellite " + norad);
   return r.json() as Promise<{
     norad_id: number;

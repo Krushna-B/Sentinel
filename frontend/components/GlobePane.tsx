@@ -72,7 +72,7 @@ export default function GlobePane( { sats,tles}: GlobePaneProps) {
   const [selectedTle, setSelectedTle] = useState<TleRecord | null>(null);
   const tleAbortRef = useRef<AbortController | null>(null);
   useEffect(() => {
-    // cancel any in-flight TLE fetch when selection changes
+    
     tleAbortRef.current?.abort();
 
     let cancelled = false;
@@ -98,7 +98,7 @@ export default function GlobePane( { sats,tles}: GlobePaneProps) {
             tle = { line1: resp.line1, line2: resp.line2 };
           }
         } catch {
-          // ignore; tle stays undefined
+
         } finally {
           // clear our ref if this was the active controller
           if (tleAbortRef.current === ctrl) tleAbortRef.current = null;
@@ -151,7 +151,7 @@ export default function GlobePane( { sats,tles}: GlobePaneProps) {
       pathPointAlt="alt"
       pathColor={() => "#FFD700"}
       pathStroke={2}   
-      pathTransitionDuration={0} // no re-animate on state changes
+      pathTransitionDuration={0} 
    
     />
     <GlobeCardHUD

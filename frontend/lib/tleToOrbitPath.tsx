@@ -1,4 +1,3 @@
-// lib/tleToOrbitPath.ts
 import * as sat from 'satellite.js';
 const R_EARTH_KM = 6371;
 
