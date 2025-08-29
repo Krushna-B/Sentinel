@@ -26,21 +26,6 @@ Sentinel continuously fetches Two-Line Elements (TLEs), stores historical epheme
 
 ---
 
-## Architecture
-
-Space-Track (TLE)
-│
-▼
-EventBridge (cron)
-│ triggers
-▼
-Lambda (ingest & propagate) ───► Neon Postgres (objects, tle_sets, state_vectors)
-│
-▼
-Lambda (FastAPI via Mangum) ◄── API Gateway ──► Next.js/React UI
-
----
-
 ## Tech Stack
 
 - Backend: Python, FastAPI, SQLAlchemy, SGP4, Mangum (ASGI→Lambda)
