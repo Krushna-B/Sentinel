@@ -1,5 +1,7 @@
 # Sentinel
 
+**Live site:** https://sentinel-v0.vercel.app/globe
+
 LEO satillete positions and orbit visualization. Ingests TLEs, propagates orbits, and serves real-time satillete details via a FastAPI backend on AWS Lambda + API Gateway, a Neon Postgres database, and a Next.js/React 3-D globe.
 
 ---
